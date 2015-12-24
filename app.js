@@ -1,3 +1,4 @@
+// Connecting dependencies
 var Twitter = require('twitter');
 var dotenv = require('dotenv');
 var five = require('johnny-five');
@@ -6,10 +7,18 @@ var board = new five.Board();
 // Loading environment variables
 dotenv.load();
 
-var tweetsPerPage = 100; // Maximum of 100
-var count;
-var globalResults;
+// Connecting to Twitter
+var client = new Twitter({
+  consumer_key: process.env.TWITTER_CONSUMER_KEY,
+  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+  access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
+  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+});
 
+var tweetsPerPage = 100, // Maximum of 100
+    count; // Used as Mood Count
+
+// Static declaration of moods
 var moodNames = [
   "love",
   "joy",
@@ -20,14 +29,15 @@ var moodNames = [
   "fear"
 ];
 
+// Levels data to comparable levels
 var moodAmplifier = {
-  love: 87,
-  joy: 85,
-  suprise: 80,
-  anger: 86,
-  envy: 84,
-  sadness: 88,
-  fear: 90
+  love: 0.87,
+  joy: 0.85,
+  suprise: 0.75,
+  anger: 0.86,
+  envy: 0.84,
+  sadness: 0.88,
+  fear: 0.90
 }
 
 // Queries corresponding to certain moods
@@ -41,7 +51,7 @@ var queries = {
   fear: '\"i\'m+so+scared\"+OR+\"i\'m+really+scared\"+OR+\"i\'m+terrified\"+OR+\"i\'m+really+afraid\"+OR+\"so+scared+i\"'
 };
 
-// Used to Parse Twitter Date
+// Determines if Tweet was posted in the last 30 seconds
 function parseTwitterDate(tdate) {
     var system_date = new Date(Date.parse(tdate));
     var user_date = new Date();
@@ -53,15 +63,12 @@ function parseTwitterDate(tdate) {
     }
 }
 
-// Connecting to Twitter
-var client = new Twitter({
-  consumer_key: process.env.TWITTER_CONSUMER_KEY,
-  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
-  access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
-  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
-});
+// Updates LED according to Results
+function analyzeResults(results) {
 
-// Searching for Tweets from every Query
+}
+
+// Searches for Tweets
 function findWorldMood() {
   var results = {
     love: 0,
@@ -72,32 +79,34 @@ function findWorldMood() {
     sadness: 0,
     fear: 0
   };
-  var worldMood;
   count = 0;
   moodNames.forEach(function(mood) {
     var today = (new Date()).toISOString().slice(0,10);
     var yesterday = (new Date(new Date() - 24*60*60*1000)).toISOString().slice(0,10);
     client.get('search/tweets', {q: queries[mood] + "since:" + yesterday, result_type: 'recent', count: tweetsPerPage}, function(error, tweets, response) {
+      if (error) throw error;
       count++;
       tweets.statuses.forEach(function(tweet) {
         if(parseTwitterDate(tweet.created_at)) {
-          results[mood]++;
+          results[mood]++; // Increment Tweet Count
         }
       });
       if (count === moodNames.length) {
         moodNames.forEach(function(mood) {
-          results[mood] *= moodAmplifier[mood];
+          results[mood] *= moodAmplifier[mood]; // Level Results
         });
-        globalResults = results;
+        analyzeResults(results);
       }
     });
   });
 }
 
+// Dev Testing, Delete When Finished
+findWorldMood();
+
 board.on('ready', function() {
-  var led = new five.Led(3);
-  this.loop(35 * 1000, function() {
-    findWorldMood();
-    // Analyze globalResults
-  }); // Find the mood every 35 seconds (Not to exceed API Request Limit of 30 requests per 15 minutes)
+  // var led = new five.Led(3);
+  // this.loop(35 * 1000, function() {
+  //   findWorldMood();
+  // }); // Find the mood every 35 seconds (Not to exceed API Request Limit of 30 requests per 15 minutes)
 });
