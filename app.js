@@ -15,8 +15,8 @@ var client = new Twitter({
   access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
 });
 
-var tweetsPerPage = 100, // Maximum of 100
-    count; // Used as Mood Count
+var tweetsPerPage = 100; // Maximum of 100
+var count; // Used as Mood Count
 
 // Static declaration of moods
 var moodNames = [
@@ -29,7 +29,18 @@ var moodNames = [
   "fear"
 ];
 
-// Levels data to comparable levels
+// Assigns colors to moods
+var moodColors = {
+  love: 'pink',
+  joy: 'yellow',
+  suprise: 'orange',
+  anger: 'red',
+  envy: 'green',
+  sadness: 'blue',
+  fear: 'white'
+}
+
+// Levels data to comparable numbers
 var moodAmplifier = {
   love: 0.87,
   joy: 0.85,
@@ -63,9 +74,17 @@ function parseTwitterDate(tdate) {
     }
 }
 
-// Updates LED according to Results
+// Updates LED color according to Results
 function analyzeResults(results) {
-
+  var worldMood = 'love';
+  moodNames.forEach(function(mood) {
+    if (results[mood] > results[worldMood]) {
+      worldMood = mood;
+    }
+  });
+  console.log(results);
+  // Change LED color
+  console.log("Changing the LED color to " + moodColors[worldMood]);
 }
 
 // Searches for Tweets
@@ -102,10 +121,10 @@ function findWorldMood() {
 }
 
 // Dev Testing, Delete When Finished
-findWorldMood();
+setInterval(findWorldMood, 30 * 1000);
 
 board.on('ready', function() {
-  // var led = new five.Led(3);
+  // var led = new five.Led(1);
   // this.loop(35 * 1000, function() {
   //   findWorldMood();
   // }); // Find the mood every 35 seconds (Not to exceed API Request Limit of 30 requests per 15 minutes)
