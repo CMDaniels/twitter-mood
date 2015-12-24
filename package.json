@@ -1,6 +1,6 @@
 {
   "name": "twitter-mood",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Analyzing twitter's pulse",
   "main": "app.js",
   "scripts": {

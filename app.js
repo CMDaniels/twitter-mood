@@ -1,8 +1,13 @@
+"use strict";
+
 // Connecting dependencies
 var Twitter = require('twitter');
 var dotenv = require('dotenv');
 var five = require('johnny-five');
+
+// Declaring components
 var board = new five.Board();
+var led;
 
 // Loading environment variables
 dotenv.load();
@@ -12,11 +17,11 @@ var client = new Twitter({
   consumer_key: process.env.TWITTER_CONSUMER_KEY,
   consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
   access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
-  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
 });
 
-var tweetsPerPage = 100; // Maximum of 100
-var count; // Used as Mood Count
+// Used in findWorldMood to detect finish
+var count;
 
 // Static declaration of moods
 var moodNames = [
@@ -38,9 +43,9 @@ var moodColors = {
   envy: '#009a00',
   sadness: '#1e90ff',
   fear: '#ffffff'
-}
+};
 
-// Levels data to comparable numbers
+// Average mood values (recorded on 12/24/15)
 var moodCompare = {
   love: 80,
   joy: 25,
@@ -49,7 +54,7 @@ var moodCompare = {
   envy: 1,
   sadness: 1,
   fear: 1
-}
+};
 
 // Queries corresponding to certain moods
 var queries = {
@@ -62,34 +67,35 @@ var queries = {
   fear: '\"i\'m+so+scared\"+OR+\"i\'m+really+scared\"+OR+\"i\'m+terrified\"+OR+\"i\'m+really+afraid\"+OR+\"so+scared+i\"'
 };
 
-// Determines if Tweet was posted in the last 30 seconds
+// Determines if a tweet was posted in the last 30 seconds
 function parseTwitterDate(tdate) {
-    var system_date = new Date(Date.parse(tdate));
-    var user_date = new Date();
-    var diff = Math.floor((user_date - system_date) / 1000);
-    if (diff <= 25) {
-      return true; // 30 sec or less
-    } else {
-      return false; // More 30 sec
-    }
+  var system_date = new Date(Date.parse(tdate));
+  var user_date = new Date();
+  var diff = Math.floor((user_date - system_date) / 1000);
+  if (diff <= 25) {
+    return true; // 30 sec or less
+  } else {
+    return false; // More 30 sec
+  }
 }
 
-// Updates LED color according to Results
+// Updates LED color according to results
 function analyzeResults(results) {
   var worldMood = 'suprise';
-  moodNames.forEach(function(mood) {
+  // Finds the mood with the highest tweet count
+  moodNames.forEach(function (mood) {
     if (results[mood] > results[worldMood]) {
       worldMood = mood;
     }
   });
   // Change LED color
-  // var led = new five.Led.RGB([6, 5, 3]);
-  // led.color(moodColors[worldMood]);
+  led.color(moodColors[worldMood]);
   console.log("Changing the LED color to " + moodColors[worldMood] + ", or " + worldMood);
 }
 
-// Searches for Tweets
+// Searches for tweets and sends results to analyzeResults
 function findWorldMood() {
+  // Declares/resets results object
   var results = {
     love: 0,
     joy: 0,
@@ -101,12 +107,11 @@ function findWorldMood() {
   };
   count = 0;
   moodNames.forEach(function(mood) {
-    var today = (new Date()).toISOString().slice(0,10);
     var yesterday = (new Date(new Date() - 24*60*60*1000)).toISOString().slice(0,10);
-    client.get('search/tweets', {q: queries[mood] + "since:" + yesterday, result_type: 'recent', count: tweetsPerPage}, function(error, tweets, response) {
+    client.get('search/tweets', {q: queries[mood] + "since:" + yesterday, result_type: 'recent', count: 100}, function(error, tweets, response) {
       if (error) {
         console.error(error);
-        process.exit(1);
+        return false;
       }
       count++;
       tweets.statuses.forEach(function(tweet) {
@@ -124,8 +129,16 @@ function findWorldMood() {
   });
 }
 
-setInterval(findWorldMood, 40 * 1000); // Runs every 40 seconds (Not to exceed API Request Limit of 180 requests per 15 minutes)
-
+// Starts program when board is ready to compute
 board.on('ready', function() {
-  // setInterval(findWorldMood, 35 * 1000); // Runs every 35 seconds (Not to exceed API Request Limit of 180 requests per 15 minutes)
+  // Initializes LED
+  led = new five.Led.RGB({
+    pins: {
+      red: 6,
+      green: 5,
+      blue: 3
+    }
+  });
+  // Runs every 40 seconds (Not to exceed API Request Limit of 180 requests per 15 minutes)
+  setInterval(findWorldMood, 40 * 1000);
 });
