@@ -9,6 +9,7 @@
   "author": "cmdaniels",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^1.2.0",
     "johnny-five": "^0.9.17",
     "twitter": "^1.2.5"
   }
