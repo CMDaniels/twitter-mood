@@ -41,14 +41,14 @@ var moodColors = {
 }
 
 // Levels data to comparable numbers
-var moodAmplifier = {
-  love: 0.87,
-  joy: 0.85,
-  suprise: 0.75,
-  anger: 0.86,
-  envy: 0.84,
-  sadness: 0.88,
-  fear: 0.90
+var moodCompare = {
+  love: 80,
+  joy: 25,
+  suprise: 80,
+  anger: 28,
+  envy: 1,
+  sadness: 1,
+  fear: 1
 }
 
 // Queries corresponding to certain moods
@@ -67,7 +67,7 @@ function parseTwitterDate(tdate) {
     var system_date = new Date(Date.parse(tdate));
     var user_date = new Date();
     var diff = Math.floor((user_date - system_date) / 1000);
-    if (diff <= 30) {
+    if (diff <= 25) {
       return true; // 30 sec or less
     } else {
       return false; // More 30 sec
@@ -76,13 +76,12 @@ function parseTwitterDate(tdate) {
 
 // Updates LED color according to Results
 function analyzeResults(results) {
-  var worldMood = 'love';
+  var worldMood = 'suprise';
   moodNames.forEach(function(mood) {
     if (results[mood] > results[worldMood]) {
       worldMood = mood;
     }
   });
-  console.log(results);
   // Change LED color
   // var led = new five.Led.RGB([6, 5, 3]);
   // led.color(moodColors[worldMood]);
@@ -117,7 +116,7 @@ function findWorldMood() {
       });
       if (count === moodNames.length) {
         moodNames.forEach(function(mood) {
-          results[mood] *= moodAmplifier[mood]; // Level Results
+          results[mood] -= moodCompare[mood]; // Level Results
         });
         analyzeResults(results);
       }
@@ -125,7 +124,7 @@ function findWorldMood() {
   });
 }
 
-setInterval(findWorldMood, 35 * 1000); // Runs every 35 seconds (Not to exceed API Request Limit of 180 requests per 15 minutes)
+setInterval(findWorldMood, 40 * 1000); // Runs every 40 seconds (Not to exceed API Request Limit of 180 requests per 15 minutes)
 
 board.on('ready', function() {
   // setInterval(findWorldMood, 35 * 1000); // Runs every 35 seconds (Not to exceed API Request Limit of 180 requests per 15 minutes)
