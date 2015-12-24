@@ -1,13 +1,14 @@
 var Twitter = require('twitter');
 var dotenv = require('dotenv');
-// var five = require('johnny-five');
-// var board = new five.Board();
+var five = require('johnny-five');
+var board = new five.Board();
 
 // Loading environment variables
 dotenv.load();
 
 var tweetsPerPage = 100; // Maximum of 100
 var count;
+var globalResults;
 
 var moodNames = [
   "love",
@@ -87,13 +88,16 @@ function findWorldMood() {
         moodNames.forEach(function(mood) {
           results[mood] *= moodAmplifier[mood];
         });
+        globalResults = results;
       }
     });
   });
 }
 
-findWorldMood();
-
-// board.on('ready', function() {
-//
-// });
+board.on('ready', function() {
+  var led = new five.Led(3);
+  this.loop(35 * 1000, function() {
+    findWorldMood();
+    // Analyze globalResults
+  }); // Find the mood every 35 seconds (Not to exceed API Request Limit of 30 requests per 15 minutes)
+});
